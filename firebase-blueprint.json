@@ -1,0 +1,394 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "A retail catalog item sold on RM Mart in INR.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 140,
+          "description": "Product display title"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 2000,
+          "description": "Detailed product description"
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "Fashion & Beauty",
+            "Electronics & Gadgets",
+            "Clothing & Shoes",
+            "Daily Essentials",
+            "Food & Snacks"
+          ],
+          "description": "Product category"
+        },
+        "price": {
+          "type": "number",
+          "description": "Current selling price in INR"
+        },
+        "originalPrice": {
+          "type": "number",
+          "description": "Original MRP in INR before discount"
+        },
+        "discountPercent": {
+          "type": "number",
+          "description": "Percentage discount derived from MRP and price"
+        },
+        "stock": {
+          "type": "number",
+          "description": "Available inventory units"
+        },
+        "rating": {
+          "type": "number",
+          "description": "Verified rating average (0 to 5)"
+        },
+        "reviewCount": {
+          "type": "number",
+          "description": "Number of verified ratings"
+        },
+        "images": {
+          "type": "array",
+          "description": "Up to 5 product image URLs"
+        },
+        "featured": {
+          "type": "boolean"
+        },
+        "bestSeller": {
+          "type": "boolean"
+        },
+        "newArrival": {
+          "type": "boolean"
+        },
+        "specialOffer": {
+          "type": "boolean"
+        },
+        "isDemo": {
+          "type": "boolean",
+          "description": "Marks sample products clearly until updated by the owner"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "category",
+        "price",
+        "originalPrice",
+        "discountPercent",
+        "stock",
+        "images",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private customer profile containing PII and synced wishlist IDs.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 200
+        },
+        "phone": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "address": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "wishlist": {
+          "type": "array",
+          "description": "Bounded list of up to 100 saved product IDs"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "wishlist", "createdAt", "updatedAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order with validated INR totals, customer delivery details, and fulfillment status.",
+      "type": "object",
+      "properties": {
+        "orderNumber": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 40,
+          "pattern": "^[A-Z0-9\\-]+$"
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "customerName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "customerMobile": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 15,
+          "pattern": "^[0-9+\\- ]{10,15}$"
+        },
+        "customerEmail": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 200
+        },
+        "deliveryAddress": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 500
+        },
+        "city": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "pincode": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 6,
+          "pattern": "^[1-9][0-9]{5}$"
+        },
+        "items": {
+          "type": "array",
+          "description": "Bounded list of up to 50 ordered line items"
+        },
+        "subtotal": {
+          "type": "number"
+        },
+        "discountTotal": {
+          "type": "number"
+        },
+        "deliveryFee": {
+          "type": "number"
+        },
+        "finalTotal": {
+          "type": "number"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["COD", "UPI"]
+        },
+        "paymentStatus": {
+          "type": "string",
+          "enum": ["Pending on Delivery", "Pending UPI Verification", "Verified"]
+        },
+        "orderStatus": {
+          "type": "string",
+          "enum": ["Pending", "Confirmed", "Packed", "Shipped", "Delivered", "Cancelled"]
+        },
+        "upiReference": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "orderNumber",
+        "idempotencyKey",
+        "userId",
+        "customerName",
+        "customerMobile",
+        "customerEmail",
+        "deliveryAddress",
+        "city",
+        "pincode",
+        "items",
+        "subtotal",
+        "discountTotal",
+        "deliveryFee",
+        "finalTotal",
+        "paymentMethod",
+        "paymentStatus",
+        "orderStatus",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Conversation": {
+      "title": "Conversation",
+      "description": "Private customer support thread between a customer and RM Mart AI / Owner.",
+      "type": "object",
+      "properties": {
+        "customerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "customerName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "customerEmail": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "lastMessage": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "needsHumanSupport": {
+          "type": "boolean"
+        },
+        "unreadByAdmin": {
+          "type": "number"
+        },
+        "unreadByCustomer": {
+          "type": "number"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["open", "resolved"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "customerUid",
+        "customerName",
+        "lastMessage",
+        "needsHumanSupport",
+        "unreadByAdmin",
+        "unreadByCustomer",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Single message inside a private customer support conversation.",
+      "type": "object",
+      "properties": {
+        "senderRole": {
+          "type": "string",
+          "enum": ["customer", "ai", "admin"]
+        },
+        "senderName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 3000
+        },
+        "language": {
+          "type": "string",
+          "enum": ["en", "hi", "mr"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["senderRole", "senderName", "text", "createdAt"]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Trusted admin allowlist document keyed by Firebase Auth UID.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 200
+        },
+        "role": {
+          "type": "string",
+          "enum": ["owner", "admin"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["email", "role", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Storefront product catalog (public read, owner/admin write only)."
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user profiles and synced wishlists (strict owner or admin access)."
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Customer orders (strict owner or admin read; admin status management)."
+    },
+    "/conversations/{conversationId}": {
+      "schema": { "$ref": "#/entities/Conversation" },
+      "description": "Private customer support conversations (strict customer owner or admin access)."
+    },
+    "/conversations/{conversationId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "Messages belonging to a private support conversation gated by parent document."
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/AdminRecord" },
+      "description": "Trusted owner/admin UID allowlist (read-only for self/admin, write disabled via client)."
+    }
+  }
+}

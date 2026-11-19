@@ -1,0 +1,32 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isOwnerAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email in [
+          'ravindramane@990email.com',
+          'maneluxurymovie@gmail.com'
+        ] ||
+        firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Default deny
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // Public read for product photography; strictly owner-only image upload (max 5MB)
+    match /products/{productId}/{fileName} {
+      allow read: if true;
+      allow write: if isOwnerAdmin()
+        && request.resource != null
+        && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp|avif)');
+    }
+  }
+}

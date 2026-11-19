@@ -1,0 +1,6 @@
+{
+  "name": "RM Mart",
+  "description": "RM Mart — Everything You Need, Delivered with Ease. Premium Indian e-commerce storefront with working cart, wishlist, Firebase Firestore backend, owner admin panel, and multilingual AI customer support.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

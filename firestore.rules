@@ -1,0 +1,329 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 1 / Global Safety Net: Default deny everything
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Hardened Global Primitives ---
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isBootstrappedOwner() {
+      return isVerifiedUser() && request.auth.token.email in [
+        'ravindramane@990email.com',
+        'maneluxurymovie@gmail.com'
+      ];
+    }
+
+    function isAdmin() {
+      return isBootstrappedOwner() ||
+        (isVerifiedUser() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    }
+
+    // --- Validation Blueprints (Pillar 2) ---
+    function isValidProduct(data) {
+      return data.keys().hasAll([
+        'name', 'description', 'category', 'price', 'originalPrice',
+        'discountPercent', 'stock', 'images', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'name', 'description', 'category', 'price', 'originalPrice',
+        'discountPercent', 'stock', 'rating', 'reviewCount', 'images',
+        'featured', 'bestSeller', 'newArrival', 'specialOffer', 'isDemo',
+        'createdAt', 'updatedAt'
+      ]) &&
+      data.name is string && data.name.size() >= 2 && data.name.size() <= 140 &&
+      data.description is string && data.description.size() >= 10 && data.description.size() <= 2000 &&
+      data.category in [
+        'Fashion & Beauty',
+        'Electronics & Gadgets',
+        'Clothing & Shoes',
+        'Daily Essentials',
+        'Food & Snacks'
+      ] &&
+      data.price is number && data.price > 0 && data.price <= 10000000 &&
+      data.originalPrice is number && data.originalPrice >= data.price && data.originalPrice <= 10000000 &&
+      data.discountPercent is number && data.discountPercent >= 0 && data.discountPercent <= 95 &&
+      data.stock is number && data.stock >= 0 && data.stock <= 100000 &&
+      (!('rating' in data) || (data.rating is number && data.rating >= 0 && data.rating <= 5)) &&
+      (!('reviewCount' in data) || (data.reviewCount is number && data.reviewCount >= 0 && data.reviewCount <= 1000000)) &&
+      data.images is list && data.images.size() >= 1 && data.images.size() <= 5 &&
+      data.images[0] is string && data.images[0].size() >= 1 && data.images[0].size() <= 2000 &&
+      (!('featured' in data) || data.featured is bool) &&
+      (!('bestSeller' in data) || data.bestSeller is bool) &&
+      (!('newArrival' in data) || data.newArrival is bool) &&
+      (!('specialOffer' in data) || data.specialOffer is bool) &&
+      (!('isDemo' in data) || data.isDemo is bool) &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll(['uid', 'email', 'wishlist', 'createdAt', 'updatedAt']) &&
+      data.keys().hasOnly(['uid', 'displayName', 'email', 'phone', 'address', 'wishlist', 'createdAt', 'updatedAt']) &&
+      data.uid is string && data.uid == userId && isValidId(data.uid) &&
+      (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100)) &&
+      data.email is string && data.email.size() >= 3 && data.email.size() <= 200 &&
+      (!('phone' in data) || (data.phone is string && data.phone.size() <= 20)) &&
+      (!('address' in data) || (data.address is string && data.address.size() <= 500)) &&
+      data.wishlist is list && data.wishlist.size() <= 100 &&
+      (data.wishlist.size() == 0 || (data.wishlist[0] is string && data.wishlist[0].size() <= 128)) &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll([
+        'orderNumber', 'idempotencyKey', 'userId', 'customerName', 'customerMobile',
+        'customerEmail', 'deliveryAddress', 'city', 'pincode', 'items',
+        'subtotal', 'discountTotal', 'deliveryFee', 'finalTotal',
+        'paymentMethod', 'paymentStatus', 'orderStatus', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'orderNumber', 'idempotencyKey', 'userId', 'customerName', 'customerMobile',
+        'customerEmail', 'deliveryAddress', 'city', 'pincode', 'items',
+        'subtotal', 'discountTotal', 'deliveryFee', 'finalTotal',
+        'paymentMethod', 'paymentStatus', 'orderStatus', 'upiReference',
+        'createdAt', 'updatedAt'
+      ]) &&
+      data.orderNumber is string && data.orderNumber.size() >= 6 && data.orderNumber.size() <= 40 && data.orderNumber.matches('^[A-Z0-9\\-]+$') &&
+      data.idempotencyKey is string && data.idempotencyKey.size() >= 8 && data.idempotencyKey.size() <= 128 && data.idempotencyKey.matches('^[a-zA-Z0-9_\\-]+$') &&
+      data.userId is string && isValidId(data.userId) &&
+      data.customerName is string && data.customerName.size() >= 2 && data.customerName.size() <= 120 &&
+      data.customerMobile is string && data.customerMobile.size() >= 10 && data.customerMobile.size() <= 15 && data.customerMobile.matches('^[0-9+\\- ]{10,15}$') &&
+      data.customerEmail is string && data.customerEmail.size() >= 3 && data.customerEmail.size() <= 200 &&
+      data.deliveryAddress is string && data.deliveryAddress.size() >= 10 && data.deliveryAddress.size() <= 500 &&
+      data.city is string && data.city.size() >= 2 && data.city.size() <= 80 &&
+      data.pincode is string && data.pincode.size() == 6 && data.pincode.matches('^[1-9][0-9]{5}$') &&
+      data.items is list && data.items.size() >= 1 && data.items.size() <= 50 && data.items[0] is map &&
+      data.subtotal is number && data.subtotal >= 0 && data.subtotal <= 10000000 &&
+      data.discountTotal is number && data.discountTotal >= 0 && data.discountTotal <= 10000000 &&
+      data.deliveryFee is number && data.deliveryFee >= 0 && data.deliveryFee <= 5000 &&
+      data.finalTotal is number && data.finalTotal > 0 && data.finalTotal <= 10000000 &&
+      data.paymentMethod in ['COD', 'UPI'] &&
+      data.paymentStatus in ['Pending on Delivery', 'Pending UPI Verification', 'Verified'] &&
+      data.orderStatus in ['Pending', 'Confirmed', 'Packed', 'Shipped', 'Delivered', 'Cancelled'] &&
+      (!('upiReference' in data) || (data.upiReference is string && data.upiReference.size() <= 100)) &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidConversation(data) {
+      return data.keys().hasAll([
+        'customerUid', 'customerName', 'lastMessage', 'needsHumanSupport',
+        'unreadByAdmin', 'unreadByCustomer', 'status', 'createdAt', 'updatedAt'
+      ]) &&
+      data.keys().hasOnly([
+        'customerUid', 'customerName', 'customerEmail', 'lastMessage',
+        'needsHumanSupport', 'unreadByAdmin', 'unreadByCustomer', 'status',
+        'createdAt', 'updatedAt'
+      ]) &&
+      data.customerUid is string && isValidId(data.customerUid) &&
+      data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 120 &&
+      (!('customerEmail' in data) || (data.customerEmail is string && data.customerEmail.size() <= 200)) &&
+      data.lastMessage is string && data.lastMessage.size() <= 500 &&
+      data.needsHumanSupport is bool &&
+      data.unreadByAdmin is number && data.unreadByAdmin >= 0 && data.unreadByAdmin <= 10000 &&
+      data.unreadByCustomer is number && data.unreadByCustomer >= 0 && data.unreadByCustomer <= 10000 &&
+      data.status in ['open', 'resolved'] &&
+      data.createdAt is timestamp &&
+      data.updatedAt is timestamp;
+    }
+
+    function isValidChatMessage(data) {
+      return data.keys().hasAll(['senderRole', 'senderName', 'text', 'createdAt']) &&
+      data.keys().hasOnly(['senderRole', 'senderName', 'text', 'language', 'createdAt']) &&
+      data.senderRole in ['customer', 'ai', 'admin'] &&
+      data.senderName is string && data.senderName.size() >= 1 && data.senderName.size() <= 120 &&
+      data.text is string && data.text.size() >= 1 && data.text.size() <= 3000 &&
+      (!('language' in data) || data.language in ['en', 'hi', 'mr']) &&
+      data.createdAt is timestamp;
+    }
+
+    // --- Startup Connection Probe ---
+    match /test/{docId} {
+      allow get: if isValidId(docId) && docId == 'connection';
+    }
+
+    // --- Admin Allowlist (Read-Only from Client) ---
+    match /admins/{adminId} {
+      allow get: if isValidId(adminId) && (isOwner(adminId) || isBootstrappedOwner());
+      allow list, create, update, delete: if false;
+    }
+
+    // --- Public Catalog, Owner-Only Management ---
+    match /products/{productId} {
+      allow get: if isValidId(productId);
+      allow list: if true;
+
+      allow create: if isVerifiedUser()
+        && isValidId(productId)
+        && isValidProduct(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && isAdmin();
+
+      allow update: if isVerifiedUser()
+        && isValidId(productId)
+        && isValidProduct(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && isAdmin();
+
+      allow delete: if isVerifiedUser() && isValidId(productId) && isAdmin();
+    }
+
+    // --- Private Customer Profiles & Synced Wishlists (Pillar 6 PII Isolation) ---
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isBootstrappedOwner();
+
+      allow create: if isVerifiedUser()
+        && isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          (
+            isOwner(userId) &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'phone', 'address', 'wishlist', 'updatedAt'])
+          )
+        );
+
+      allow delete: if false;
+    }
+
+    // --- Orders (Strict Customer Isolation + Terminal State Locking) ---
+    match /orders/{orderId} {
+      allow get: if isValidId(orderId) && (
+        (isSignedIn() && existing().userId == request.auth.uid) ||
+        isAdmin()
+      );
+      allow list: if isBootstrappedOwner() || (isSignedIn() && existing().userId == request.auth.uid);
+
+      allow create: if isVerifiedUser()
+        && isValidId(orderId)
+        && isValidOrder(incoming())
+        && incoming().userId == request.auth.uid
+        && incoming().orderStatus == 'Pending'
+        && incoming().paymentStatus != 'Verified'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(orderId)
+        && isValidOrder(incoming())
+        && incoming().userId == existing().userId
+        && incoming().orderNumber == existing().orderNumber
+        && incoming().idempotencyKey == existing().idempotencyKey
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          (
+            // Customer can only cancel while Pending; terminal states are locked
+            existing().userId == request.auth.uid &&
+            existing().orderStatus == 'Pending' &&
+            incoming().orderStatus == 'Cancelled' &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['orderStatus', 'updatedAt'])
+          )
+        );
+
+      allow delete: if false;
+    }
+
+    // --- Private Customer Support Conversations (Master Gate Pattern) ---
+    match /conversations/{conversationId} {
+      allow get: if isValidId(conversationId) && (
+        (isSignedIn() && existing().customerUid == request.auth.uid) ||
+        isAdmin()
+      );
+      allow list: if isBootstrappedOwner() || (isSignedIn() && existing().customerUid == request.auth.uid);
+
+      allow create: if isVerifiedUser()
+        && isValidId(conversationId)
+        && isValidConversation(incoming())
+        && incoming().customerUid == request.auth.uid
+        && incoming().status == 'open'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(conversationId)
+        && isValidConversation(incoming())
+        && incoming().customerUid == existing().customerUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin() ||
+          (
+            existing().customerUid == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'lastMessage', 'needsHumanSupport', 'unreadByAdmin', 'unreadByCustomer', 'updatedAt'
+            ])
+          )
+        );
+
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow get: if isValidId(conversationId) && isValidId(messageId) && (
+          isAdmin() ||
+          (isSignedIn() && get(/databases/$(database)/documents/conversations/$(conversationId)).data.customerUid == request.auth.uid)
+        );
+        allow list: if isValidId(conversationId) && (
+          isBootstrappedOwner() ||
+          (isSignedIn() && get(/databases/$(database)/documents/conversations/$(conversationId)).data.customerUid == request.auth.uid)
+        );
+
+        allow create: if isVerifiedUser()
+          && isValidId(conversationId)
+          && isValidId(messageId)
+          && isValidChatMessage(incoming())
+          && incoming().createdAt == request.time
+          && exists(/databases/$(database)/documents/conversations/$(conversationId))
+          && (
+            (isAdmin() && incoming().senderRole == 'admin') ||
+            (
+              get(/databases/$(database)/documents/conversations/$(conversationId)).data.customerUid == request.auth.uid &&
+              incoming().senderRole in ['customer', 'ai']
+            )
+          );
+
+        allow update, delete: if false;
+      }
+    }
+  }
+}
