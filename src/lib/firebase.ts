@@ -179,6 +179,23 @@ export async function uploadProductImage(productId: string, file: File): Promise
   return getDownloadURL(storageRef);
 }
 
+/**
+ * Resolves a Firebase Storage reference (gs:// bucket URI or storage object path)
+ * into a signed HTTPS download URL using the configured Firebase Storage SDK.
+ */
+export async function resolveStorageImageUrl(pathOrUrl: string): Promise<string> {
+  const trimmed = pathOrUrl.trim();
+  if (!trimmed || !storage) return trimmed;
+  if (/^https?:\/\//i.test(trimmed) || /^(data:image\/|blob:)/i.test(trimmed)) {
+    return trimmed;
+  }
+  if (/^gs:\/\//i.test(trimmed) || /^products\/[^/]+\/.+/i.test(trimmed)) {
+    const storageRef = ref(storage, trimmed);
+    return getDownloadURL(storageRef);
+  }
+  return trimmed;
+}
+
 export function getFirebaseProjectInfo() {
   return {
     configured: isFirebaseConfigured,

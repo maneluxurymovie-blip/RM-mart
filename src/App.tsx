@@ -52,14 +52,21 @@ function readStorage<T>(key: string, fallback: T): T {
   }
 }
 
-function getInitialViewFromLocation(): ActiveView {
-  if (typeof window === 'undefined') return 'home';
+const APP_BASE_URL = (import.meta.env.BASE_URL || '/').replace(/\/?$/, '/');
+
+function isAdminLocation(): boolean {
+  if (typeof window === 'undefined') return false;
   const path = window.location.pathname.toLowerCase();
   const hash = window.location.hash.toLowerCase();
-  if (path === '/admin' || path.startsWith('/admin/') || hash === '#admin') {
-    return 'admin';
-  }
-  return 'home';
+  const normalizedBase = APP_BASE_URL.toLowerCase();
+  const relativePath = path.startsWith(normalizedBase)
+    ? path.slice(normalizedBase.length)
+    : path.replace(/^\/+/, '');
+  return relativePath === 'admin' || relativePath.startsWith('admin/') || hash === '#admin';
+}
+
+function getInitialViewFromLocation(): ActiveView {
+  return isAdminLocation() ? 'admin' : 'home';
 }
 
 export default function App() {
@@ -199,9 +206,15 @@ export default function App() {
     });
   }, []);
 
-  // Keep Express server validator & AI assistant synchronized with live catalog
+  // Keep Express server validator & AI assistant synchronized with live catalog when backend is active
   useEffect(() => {
     if (firestoreProducts.length === 0) return;
+    if (
+      typeof window !== 'undefined' &&
+      (window.location.hostname.endsWith('.github.io') || APP_BASE_URL !== '/')
+    ) {
+      return;
+    }
     fetch('/api/catalog/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -241,8 +254,8 @@ export default function App() {
     await signOutUser();
     if (activeView === 'admin') {
       setActiveView('home');
-      if (typeof window !== 'undefined' && window.location.pathname.toLowerCase().startsWith('/admin')) {
-        window.history.pushState({}, '', '/');
+      if (typeof window !== 'undefined' && isAdminLocation()) {
+        window.history.pushState({}, '', APP_BASE_URL);
       }
     }
     showToast('Signed out cleanly.');
@@ -319,11 +332,11 @@ export default function App() {
   const handleNavigate = (view: ActiveView) => {
     setActiveView(view);
     if (typeof window !== 'undefined') {
-      const currentPath = window.location.pathname.toLowerCase();
-      if (view === 'admin' && currentPath !== '/admin') {
-        window.history.pushState({}, '', '/admin');
-      } else if (view !== 'admin' && (currentPath === '/admin' || currentPath.startsWith('/admin/'))) {
-        window.history.pushState({}, '', '/');
+      if (view === 'admin' && !isAdminLocation()) {
+        const target = APP_BASE_URL === '/' ? '/admin' : `${APP_BASE_URL}#admin`;
+        window.history.pushState({}, '', target);
+      } else if (view !== 'admin' && isAdminLocation()) {
+        window.history.pushState({}, '', APP_BASE_URL);
       }
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });

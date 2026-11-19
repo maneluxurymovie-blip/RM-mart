@@ -5,6 +5,7 @@ import {
   formatINR,
   FREE_DELIVERY_THRESHOLD_INR,
 } from '../utils/commerce';
+import { resolveBundledProductImage } from '../lib/productImageResolver';
 import type { CartItem, Product } from '../types';
 
 interface CartViewProps {
@@ -87,8 +88,10 @@ export const CartView: React.FC<CartViewProps> = ({
                 <div className="w-full sm:w-28 aspect-[4/3] rounded-lg overflow-hidden bg-[#F2ECE1] shrink-0">
                   {item.image && (
                     <img
-                      src={item.image}
+                      src={resolveBundledProductImage(item.image)}
                       alt={item.name}
+                      loading="lazy"
+                      decoding="async"
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover"
                     />

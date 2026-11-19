@@ -4,9 +4,13 @@ import fs from 'fs';
 import path from 'path';
 import {defineConfig} from 'vite';
 
-export default defineConfig(() => {
+export default defineConfig(({command, isPreview}) => {
+  const base =
+    command === 'serve' && !isPreview
+      ? '/'
+      : process.env.VITE_BASE_PATH || '/RM-mart/';
   return {
-    base: '/RM-mart/',
+    base,
     plugins: [
       react(),
       tailwindcss(),

@@ -6,7 +6,7 @@ import {
   computeAdminMetrics,
   computeRevenueByCategory,
 } from './adminMetrics';
-import { DEMO_PRODUCTS } from '../data/demoProducts';
+import { DEMO_PRODUCTS } from '../data/demoCatalogData';
 import type { Order, SupportConversation } from '../types';
 
 const sampleOrders: Order[] = [

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
-import { DEMO_PRODUCTS } from './src/data/demoProducts';
+import { DEMO_PRODUCTS } from './src/data/demoCatalogData';
 import {
   calculateCartTotals,
   FREE_DELIVERY_THRESHOLD_INR,
@@ -624,6 +624,7 @@ ${verifiedOrderSummary}`;
 
   if (process.env.NODE_ENV === 'production') {
     const distDir = path.resolve(__dirname, 'dist');
+    app.use('/RM-mart', express.static(distDir));
     app.use(express.static(distDir));
     app.get('*', (_req, res) => {
       res.sendFile(path.join(distDir, 'index.html'));

@@ -8,6 +8,7 @@ import {
   type CheckoutValidationErrors,
 } from '../utils/validation';
 import { persistOrderToFirestore } from '../lib/storeService';
+import { resolveBundledProductImage } from '../lib/productImageResolver';
 import type { CartItem, CustomerDetails, Order, PaymentMethod, Product } from '../types';
 
 interface CheckoutViewProps {
@@ -403,8 +404,10 @@ export const CheckoutView: React.FC<CheckoutViewProps> = ({
                 <div className="w-14 h-11 rounded-md overflow-hidden bg-[#F2ECE1] shrink-0">
                   {item.image && (
                     <img
-                      src={item.image}
+                      src={resolveBundledProductImage(item.image)}
                       alt={item.name}
+                      loading="lazy"
+                      decoding="async"
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover"
                     />

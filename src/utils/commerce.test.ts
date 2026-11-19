@@ -10,7 +10,7 @@ import {
   toggleWishlistItem,
   updateCartItemQuantity,
 } from './commerce';
-import { DEMO_PRODUCTS } from '../data/demoProducts';
+import { DEMO_PRODUCTS } from '../data/demoCatalogData';
 
 test('prevent duplicate cart entries by incrementing quantity up to stock cap', () => {
   const first = addOrIncrementCartItem([], 'rm-saffron-elixir', 5, 1);

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Check, Heart, Minus, Plus, ShieldCheck, Truck, X } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Check, Heart, Minus, Package, Plus, ShieldCheck, Truck, X } from 'lucide-react';
 import { formatINR, FREE_DELIVERY_THRESHOLD_INR } from '../utils/commerce';
+import { resolveBundledProductImages } from '../lib/productImageResolver';
 import type { Product } from '../types';
 
 interface ProductDetailModalProps {
@@ -20,11 +21,26 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 }) => {
   const [quantity, setQuantity] = useState(1);
   const [selectedImg, setSelectedImg] = useState(0);
+  const [imageFailed, setImageFailed] = useState(false);
+
+  const images = useMemo(
+    () => (product ? resolveBundledProductImages(product.images) : []),
+    [product]
+  );
+
+  useEffect(() => {
+    setQuantity(1);
+    setSelectedImg(0);
+    setImageFailed(false);
+  }, [product?.id]);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [selectedImg]);
 
   if (!product) return null;
   const outOfStock = product.stock <= 0;
-  const images = product.images.length > 0 ? product.images : [''];
-  const activeSrc = images[selectedImg] || images[0];
+  const activeSrc = images[selectedImg] || images[0] || '';
 
   return (
     <div
@@ -47,13 +63,20 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           {/* Left Gallery */}
           <div className="bg-[#F2ECE1] p-6 flex flex-col justify-center">
             <div className="aspect-[4/3] rounded-xl overflow-hidden bg-white">
-              {activeSrc && (
+              {activeSrc && !imageFailed ? (
                 <img
                   src={activeSrc}
                   alt={product.name}
+                  decoding="async"
                   referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover"
+                  onError={() => setImageFailed(true)}
+                  className="w-full h-full object-cover object-center"
                 />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center bg-gradient-to-br from-[#F2ECE1] to-[#E6DFD3] text-[#0D3B2E]">
+                  <Package className="w-8 h-8 mb-2 opacity-60" aria-hidden="true" />
+                  <span className="text-xs font-medium text-[#52605B]">{product.name}</span>
+                </div>
               )}
             </div>
             {images.length > 1 && (
@@ -70,6 +93,8 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     <img
                       src={src}
                       alt={`${product.name} view ${index + 1}`}
+                      loading="lazy"
+                      decoding="async"
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover"
                     />

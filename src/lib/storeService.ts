@@ -15,11 +15,13 @@ import {
 } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
 import { db, handleFirestoreError, OperationType } from './firebase';
+import { resolveBundledProductImage, resolveBundledProductImages } from './productImageResolver';
 import { calculateDiscountPercent } from '../utils/commerce';
 import type {
   ChatMessage,
   CustomerRecord,
   Order,
+  OrderLineItem,
   OrderStatus,
   Product,
   SupportConversation,
@@ -58,7 +60,9 @@ export function subscribeProducts(
           stock: Number(d.stock || 0),
           rating: typeof d.rating === 'number' && d.reviewCount > 0 ? d.rating : null,
           reviewCount: Number(d.reviewCount || 0),
-          images: Array.isArray(d.images) ? d.images.map(String) : [],
+          images: resolveBundledProductImages(
+            Array.isArray(d.images) ? d.images.map(String) : []
+          ),
           featured: Boolean(d.featured),
           bestSeller: Boolean(d.bestSeller),
           newArrival: Boolean(d.newArrival),
@@ -284,7 +288,12 @@ export function subscribeOrders(
           deliveryAddress: String(d.deliveryAddress || ''),
           city: String(d.city || ''),
           pincode: String(d.pincode || ''),
-          items: Array.isArray(d.items) ? d.items : [],
+          items: Array.isArray(d.items)
+            ? (d.items as OrderLineItem[]).map((item) => ({
+                ...item,
+                image: resolveBundledProductImage(String(item?.image || '')),
+              }))
+            : [],
           subtotal: Number(d.subtotal || 0),
           discountTotal: Number(d.discountTotal || 0),
           deliveryFee: Number(d.deliveryFee || 0),

@@ -34,6 +34,7 @@ import {
   updateProductStockInFirestore,
 } from '../lib/storeService';
 import { getFirebaseProjectInfo, uploadProductImage } from '../lib/firebase';
+import { resolveBundledProductImage } from '../lib/productImageResolver';
 import { calculateDiscountPercent, formatINR } from '../utils/commerce';
 import { sanitizeProductInput } from '../utils/validation';
 import {
@@ -987,7 +988,7 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                   <div className="md:col-span-2 flex items-center gap-4 p-3 bg-[#FAF7F2] rounded-lg border border-[#E5DEC9]">
                     <div className="w-20 h-16 rounded-md overflow-hidden bg-[#F2ECE1] shrink-0">
                       <img
-                        src={editingProduct.images[0]}
+                        src={resolveBundledProductImage(editingProduct.images[0])}
                         alt="Product preview"
                         referrerPolicy="no-referrer"
                         className="w-full h-full object-cover"
@@ -1070,8 +1071,10 @@ export const AdminDashboardView: React.FC<AdminDashboardViewProps> = ({
                         <div className="w-11 h-9 rounded bg-[#F2ECE1] overflow-hidden shrink-0">
                           {p.images[0] && (
                             <img
-                              src={p.images[0]}
+                              src={resolveBundledProductImage(p.images[0])}
                               alt={p.name}
+                              loading="lazy"
+                              decoding="async"
                               referrerPolicy="no-referrer"
                               className="w-full h-full object-cover"
                             />

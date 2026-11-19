@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Heart, Package, Plus, Star } from 'lucide-react';
 import { formatINR } from '../utils/commerce';
+import { resolveBundledProductImages } from '../lib/productImageResolver';
+import { resolveStorageImageUrl } from '../lib/firebase';
 import type { Product } from '../types';
 
 interface ProductCardProps {
@@ -18,27 +20,77 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onToggleWishlist,
   onSelectProduct,
 }) => {
+  const resolvedImages = useMemo(
+    () => resolveBundledProductImages(product.images),
+    [product.images]
+  );
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [overrideSrc, setOverrideSrc] = useState<string | null>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
-  const primaryImage = product.images[0] || '';
+
+  const rawCandidate = product.images[activeIndex] || '';
+  const primaryImage = overrideSrc || resolvedImages[activeIndex] || '';
   const outOfStock = product.stock <= 0;
+
+  useEffect(() => {
+    setActiveIndex(0);
+    setOverrideSrc(null);
+    setImageLoaded(false);
+    setImageFailed(false);
+  }, [product.id, resolvedImages.join('|')]);
+
+  const handleImageError = async () => {
+    // If raw reference is a Firebase Storage gs:// or bucket path, try fetching tokenized download URL
+    if (!overrideSrc && rawCandidate && (/^gs:\/\//i.test(rawCandidate) || /^products\//i.test(rawCandidate))) {
+      try {
+        const signedUrl = await resolveStorageImageUrl(rawCandidate);
+        if (signedUrl && signedUrl !== primaryImage) {
+          setOverrideSrc(signedUrl);
+          return;
+        }
+      } catch {
+        // fall through to next candidate or placeholder
+      }
+    }
+
+    if (activeIndex + 1 < resolvedImages.length) {
+      setOverrideSrc(null);
+      setImageLoaded(false);
+      setActiveIndex((prev) => prev + 1);
+      return;
+    }
+    setImageFailed(true);
+  };
 
   return (
     <article className="group bg-white border border-[#E6DFD3] rounded-xl overflow-hidden flex flex-col transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-md">
-      {/* Uniform 4:3 Imagery Container */}
-      <div className="relative aspect-[4/3] bg-[#F2ECE1] overflow-hidden">
+      {/* Uniform 4:3 Responsive Imagery Container */}
+      <div className="relative aspect-[4/3] w-full bg-[#F2ECE1] overflow-hidden">
         {primaryImage && !imageFailed ? (
           <button
             type="button"
             onClick={() => onSelectProduct(product)}
             aria-label={`View details for ${product.name}`}
-            className="block w-full h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0D3B2E]"
+            className="relative block w-full h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0D3B2E]"
           >
+            {!imageLoaded && (
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 bg-[#EFE9DD]"
+              />
+            )}
             <img
               src={primaryImage}
               alt={product.name}
+              loading="lazy"
+              decoding="async"
               referrerPolicy="no-referrer"
-              onError={() => setImageFailed(true)}
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+              onLoad={() => setImageLoaded(true)}
+              onError={handleImageError}
+              className={`w-full h-full object-cover object-center transition-all duration-300 group-hover:scale-[1.03] ${
+                imageLoaded ? 'opacity-100' : 'opacity-0'
+              }`}
             />
           </button>
         ) : (

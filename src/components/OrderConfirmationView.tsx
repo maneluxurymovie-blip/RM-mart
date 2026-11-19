@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowRight, CheckCircle2, PackageCheck } from 'lucide-react';
 import { formatINR } from '../utils/commerce';
+import { resolveBundledProductImage } from '../lib/productImageResolver';
 import type { Order } from '../types';
 
 interface OrderConfirmationViewProps {
@@ -148,8 +149,10 @@ export const OrderConfirmationView: React.FC<OrderConfirmationViewProps> = ({
                 <div className="w-12 h-10 rounded overflow-hidden bg-[#F2ECE1] shrink-0">
                   {item.image && (
                     <img
-                      src={item.image}
+                      src={resolveBundledProductImage(item.image)}
                       alt={item.name}
+                      loading="lazy"
+                      decoding="async"
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover"
                     />
